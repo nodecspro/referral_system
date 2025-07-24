@@ -1,10 +1,22 @@
 import random
+import string # <-- Импортируем string
 import time
+from django.contrib.auth import get_user_model # <-- Импортируем get_user_model
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework_simplejwt.tokens import RefreshToken # <-- Импортируем токены
 
-from .serializers import PhoneSerializer
+from .serializers import PhoneSerializer, VerifyCodeSerializer # <-- Добавляем новый сериализатор
+
+User = get_user_model() # <-- Получаем нашу кастомную модель User
+
+def generate_invite_code():
+    """Генерирует уникальный 6-значный инвайт-код."""
+    while True:
+        code = ''.join(random.choices(string.ascii_letters + string.digits, k=6))
+        if not User.objects.filter(invite_code=code).exists():
+            return code
 
 class RequestAuthCodeView(APIView):
     """
@@ -40,3 +52,47 @@ class RequestAuthCodeView(APIView):
             {'message': 'Код авторизации отправлен.'},
             status=status.HTTP_200_OK
         )
+    
+class VerifyCodeView(APIView):
+    """
+    Представление для проверки кода и авторизации/регистрации пользователя.
+    """
+    def post(self, request, *args, **kwargs):
+        # Проверяем, есть ли данные в сессии
+        if 'phone_number' not in request.session or 'auth_code' not in request.session:
+            return Response(
+                {'error': 'Сессия истекла или не была начата.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        serializer = VerifyCodeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # Сравниваем код из запроса с кодом из сессии
+        if str(request.session['auth_code']) != serializer.validated_data['code']:
+            return Response(
+                {'error': 'Неверный код авторизации.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        phone_number = request.session['phone_number']
+
+        # Находим пользователя или создаем нового
+        user, created = User.objects.get_or_create(phone_number=phone_number)
+
+        # Если пользователь новый, генерируем и присваиваем ему инвайт-код
+        if created:
+            user.invite_code = generate_invite_code()
+            user.save()
+
+        # Генерируем JWT токены для пользователя
+        refresh = RefreshToken.for_user(user)
+        tokens = {
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        }
+
+        # Очищаем сессию после успешного входа
+        request.session.flush()
+
+        return Response(tokens, status=status.HTTP_200_OK)

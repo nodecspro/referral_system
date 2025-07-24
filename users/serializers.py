@@ -9,3 +9,12 @@ class PhoneSerializer(serializers.Serializer):
 
     class Meta:
         fields = ['phone_number']
+        
+class VerifyCodeSerializer(serializers.Serializer):
+    """
+    Сериализатор для валидации 4-значного кода авторизации.
+    """
+    code = serializers.CharField(max_length=4, required=True)
+
+    class Meta:
+        fields = ['code']
