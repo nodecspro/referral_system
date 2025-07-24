@@ -1,0 +1,38 @@
+# Виртуальное окружение Python
+venv/
+env/
+*.pyc
+__pycache__/
+.env
+
+# Файлы настроек IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Локальные настройки Django
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Файлы медиа и статики (если они генерируются локально)
+/media/
+/static/
+
+# Логи
+logs/
+*.log
+
+# Файлы Docker
+.dockerignore
+!postgres_data/
+
+# Файлы операционной системы
+.DS_Store
+Thumbs.db
+
+# Файлы тестов и отчетов о покрытии
+.pytest_cache/
+.coverage
+htmlcov/
