@@ -37,3 +37,4 @@ Thumbs.db
 .coverage
 htmlcov/
 example api
+referral_system.code-workspace
