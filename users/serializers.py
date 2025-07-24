@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from .models import User
 
 class PhoneSerializer(serializers.Serializer):
     """
@@ -18,3 +19,34 @@ class VerifyCodeSerializer(serializers.Serializer):
 
     class Meta:
         fields = ['code']
+        
+class ReferredUserSerializer(serializers.ModelSerializer):
+    """
+    Простой сериализатор для отображения номеров телефонов
+    приглашенных пользователей.
+    """
+    class Meta:
+        model = User
+        fields = ['phone_number']
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для отображения полного профиля пользователя.
+    """
+    referred_users = ReferredUserSerializer(many=True, read_only=True)
+
+    activated_invite_code = serializers.CharField(
+        source='activated_invite_from.invite_code',
+        read_only=True
+    )
+
+    class Meta:
+        model = User
+        fields = [
+            'id',
+            'phone_number',
+            'invite_code',
+            'activated_invite_code',
+            'referred_users',
+        ]
