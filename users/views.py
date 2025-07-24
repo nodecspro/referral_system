@@ -6,8 +6,13 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.permissions import IsAuthenticated
 
-from .serializers import PhoneSerializer, VerifyCodeSerializer
+from .serializers import (
+    PhoneSerializer,
+    VerifyCodeSerializer,
+    UserProfileSerializer,
+)
 
 User = get_user_model()
 
@@ -96,3 +101,21 @@ class VerifyCodeView(APIView):
         request.session.flush()
 
         return Response(tokens, status=status.HTTP_200_OK)
+    
+class UserProfileView(APIView):
+    """
+    Представление для просмотра и частичного обновления профиля пользователя.
+    Доступно только аутентифицированным пользователям.
+    """
+    # Требуем, чтобы пользователь был аутентифицирован (предоставил валидный токен)
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        """
+        Обрабатывает GET-запрос для получения данных профиля.
+        """
+        # request.user будет содержать экземпляр текущего пользователя
+        # благодаря JWTAuthentication и IsAuthenticated.
+        user = request.user
+        serializer = UserProfileSerializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
