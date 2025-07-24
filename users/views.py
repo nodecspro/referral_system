@@ -1,15 +1,15 @@
 import random
-import string # <-- Импортируем string
+import string
 import time
-from django.contrib.auth import get_user_model # <-- Импортируем get_user_model
+from django.contrib.auth import get_user_model
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework_simplejwt.tokens import RefreshToken # <-- Импортируем токены
+from rest_framework_simplejwt.tokens import RefreshToken
 
-from .serializers import PhoneSerializer, VerifyCodeSerializer # <-- Добавляем новый сериализатор
+from .serializers import PhoneSerializer, VerifyCodeSerializer
 
-User = get_user_model() # <-- Получаем нашу кастомную модель User
+User = get_user_model()
 
 def generate_invite_code():
     """Генерирует уникальный 6-значный инвайт-код."""
