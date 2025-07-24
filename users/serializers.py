@@ -50,3 +50,13 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'activated_invite_code',
             'referred_users',
         ]
+        
+class ActivateInviteCodeSerializer(serializers.Serializer):
+    """
+    Сериализатор для валидации инвайт-кода, который
+    пользователь вводит для активации.
+    """
+    invite_code = serializers.CharField(max_length=6, required=True)
+
+    class Meta:
+        fields = ['invite_code']

@@ -12,6 +12,7 @@ from .serializers import (
     PhoneSerializer,
     VerifyCodeSerializer,
     UserProfileSerializer,
+    ActivateInviteCodeSerializer
 )
 
 User = get_user_model()
@@ -104,18 +105,53 @@ class VerifyCodeView(APIView):
     
 class UserProfileView(APIView):
     """
-    Представление для просмотра и частичного обновления профиля пользователя.
+    Представление для просмотра и обновления профиля пользователя.
     Доступно только аутентифицированным пользователям.
     """
-    # Требуем, чтобы пользователь был аутентифицирован (предоставил валидный токен)
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
-        """
-        Обрабатывает GET-запрос для получения данных профиля.
-        """
-        # request.user будет содержать экземпляр текущего пользователя
-        # благодаря JWTAuthentication и IsAuthenticated.
-        user = request.user
-        serializer = UserProfileSerializer(user)
+        """Обрабатывает GET-запрос для получения данных профиля."""
+        serializer = UserProfileSerializer(request.user)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request, *args, **kwargs):
+        """
+        Обрабатывает PATCH-запрос для активации чужого инвайт-кода.
+        """
+        user = request.user
+        serializer = ActivateInviteCodeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        submitted_code = serializer.validated_data['invite_code']
+
+        # Проверка 1: Пользователь уже активировал код?
+        if user.activated_invite_from is not None:
+            return Response(
+                {'error': 'Вы уже активировали инвайт-код.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Проверка 2: Пользователь пытается ввести свой собственный код?
+        if user.invite_code == submitted_code:
+            return Response(
+                {'error': 'Вы не можете активировать собственный инвайт-код.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Проверка 3: Существует ли такой инвайт-код вообще?
+        try:
+            referrer = User.objects.get(invite_code=submitted_code)
+        except User.DoesNotExist:
+            return Response(
+                {'error': 'Инвайт-код не найден.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Все проверки пройдены. Активируем код.
+        user.activated_invite_from = referrer
+        user.save()
+
+        # Возвращаем обновленные данные профиля
+        updated_serializer = UserProfileSerializer(user)
+        return Response(updated_serializer.data, status=status.HTTP_200_OK)
